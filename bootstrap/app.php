@@ -16,8 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // Trust all proxies (useful for Railway's load balancer)
         Request::setTrustedProxies(
-            ['REMOTE_ADDR'],
-            Request::HEADER_X_FORWARDED_ALL
+            ['*'],
+            Request::HEADER_X_FORWARDED_FOR |
+            Request::HEADER_X_FORWARDED_HOST |
+            Request::HEADER_X_FORWARDED_PORT |
+            Request::HEADER_X_FORWARDED_PROTO |
+            Request::HEADER_X_FORWARDED_AWS_ELB
         );
 
         // API middleware group
@@ -25,9 +29,6 @@ return Application::configure(basePath: dirname(__DIR__))
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             \Fruitcake\Cors\HandleCors::class,
         ]);
-
-        // CORS middleware
-        $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
 
         // CSRF token validation
         $middleware->validateCsrfTokens(except: [
