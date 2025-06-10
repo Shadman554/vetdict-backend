@@ -29,9 +29,10 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        // Only run the WordsTableSeeder which will handle all the seeding
+        // Run the seeders
         $this->call([
-            WordsTableSeeder::class,
+            // WordsTableSeeder::class, // Disabled the old seeder
+            SeedWordsTable::class,    // Using the new seeder
         ]);
     }
 }
