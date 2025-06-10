@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Config;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,19 +25,71 @@ Route::get('/test-cors', function () {
     ]);
 });
 
-// Test database connection and table structure
-Route::get('/test-db', function () {
+// Test database connection and configuration
+Route::get('/db-test', function () {
     try {
+        $connection = config('database.default');
+        $config = config("database.connections.{$connection}");
+        
         // Test database connection
         DB::connection()->getPdo();
         
-        // Check if diseases table exists
+        // Check SQLite database file if using SQLite
+        if ($connection === 'sqlite') {
+            $database = $config['database'];
+            $dbExists = file_exists($database);
+            $dbWritable = is_writable($database) || is_writable(dirname($database));
+            
+            return response()->json([
+                'status' => 'SQLite connection successful',
+                'database_file' => $database,
+                'file_exists' => $dbExists,
+                'is_writable' => $dbWritable,
+                'app_env' => config('app.env'),
+                'db_connection' => $connection,
+                'db_config' => $config,
+                'storage_writable' => is_writable(storage_path()),
+                'bootstrap_cache_writable' => is_writable(base_path('bootstrap/cache')),
+            ]);
+        }
+        
+        return response()->json([
+            'status' => 'Database connection successful',
+            'app_env' => config('app.env'),
+            'db_connection' => $connection,
+            'db_config' => $config,
+        ]);
+        
+    } catch (\Exception $e) {
+        $connection = config('database.default');
+        $config = config("database.connections.{$connection}");
+        
+        return response()->json([
+            'error' => $e->getMessage(),
+            'app_env' => config('app.env'),
+            'db_connection' => $connection,
+            'db_config' => $config,
+            'storage_writable' => is_writable(storage_path()),
+            'bootstrap_cache_writable' => is_writable(base_path('bootstrap/cache')),
+            'php_version' => PHP_VERSION,
+            'extensions' => get_loaded_extensions(),
+        ], 500);
+    }
+});
+
+// Test database schema and data
+Route::get('/db-schema', function () {
+    try {
+        // Test database connection first
+        DB::connection()->getPdo();
+        
         $tables = [
-            'diseases', 'words', 'drugs', 'books', 'normal_ranges', 'staff', 'tutorial_videos'
+            'users', 'diseases', 'words', 'drugs', 'books', 
+            'normal_ranges', 'staff', 'tutorial_videos'
         ];
         
         $result = [
-            'status' => 'Database connection successful',
+            'status' => 'Database schema check',
             'app_env' => config('app.env'),
             'db_connection' => config('database.default'),
             'tables' => []
@@ -64,10 +117,6 @@ Route::get('/test-db', function () {
         return response()->json([
             'error' => $e->getMessage(),
             'trace' => $e->getTraceAsString(),
-            'app_env' => config('app.env'),
-            'db_connection' => config('database.default'),
-            'db_host' => config('database.connections.' . config('database.default') . '.host'),
-            'db_database' => config('database.connections.' . config('database.default') . '.database'),
         ], 500);
     }
 });
