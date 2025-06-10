@@ -1,0 +1,12 @@
+{
+  "checks": [
+    {
+      "type": "http",
+      "path": "/health.php",
+      "interval": 30,
+      "timeout": 10,
+      "method": "GET",
+      "expectedStatus": 200
+    }
+  ]
+}
