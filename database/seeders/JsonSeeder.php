@@ -38,12 +38,19 @@ class JsonSeeder extends Seeder
 
             // Check if data is not null and is an array
             if (is_array($data) && !empty($data)) {
+                // Filter out any unwanted keys (like _exportedAt) from each record
+                $filteredData = array_map(function($record) {
+                    return array_filter($record, function($value, $key) {
+                        return $key !== '_exportedAt';
+                    }, ARRAY_FILTER_USE_BOTH);
+                }, $data);
+
                 // Use a transaction for safety
-                DB::transaction(function () use ($tableName, $data) {
+                DB::transaction(function () use ($tableName, $filteredData) {
                     // Truncate the table before seeding to avoid duplicates on re-seed
                     DB::table($tableName)->truncate();
                     // Insert data into the table
-                    DB::table($tableName)->insert($data);
+                    DB::table($tableName)->insert($filteredData);
                 });
                 $this->command->info("Seeded {$tableName} successfully.");
             } else {
