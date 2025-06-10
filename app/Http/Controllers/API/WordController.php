@@ -22,7 +22,7 @@ class WordController extends BaseController
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         try {
             // Log the request parameters
@@ -47,20 +47,8 @@ class WordController extends BaseController
                 });
             }
             
-            // Get all results without pagination
-            $sql = $query->orderBy('name')->toSql();
-            $bindings = $query->getBindings();
-            
-            \Log::info('SQL Query:', [
-                'sql' => $sql,
-                'bindings' => $bindings
-            ]);
-            
+            // Get the results
             $words = $query->orderBy('name')->get();
-            
-            \Log::info('Query Results Count:', ['count' => $words->count()]);
-            \Log::info('First few words:', $words->take(5)->toArray());
-            \Log::info('Specific word check:', ['shadman_exists' => $words->contains('name', 'shadman')]);
             
             // Transform the items
             $transformedItems = $words->map(function($word) {
@@ -79,23 +67,18 @@ class WordController extends BaseController
                 ];
             });
             
-            return response()->json([
-                'success' => true,
+            return $this->sendResponse([
                 'data' => $transformedItems,
                 'meta' => [
                     'total' => $words->count()
                 ]
-            ]);
+            ], 'Words retrieved successfully');
             
         } catch (\Exception $e) {
             \Log::error('Error in WordController@index: ' . $e->getMessage());
             \Log::error($e->getTraceAsString());
             
-            return response()->json([
-                'success' => false,
-                'message' => 'Error retrieving words',
-                'error' => $e->getMessage()
-            ], 500);
+            return $this->sendError('Error retrieving words', [], 500);
         }
     }
 

@@ -27,7 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // API middleware group
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            \Fruitcake\Cors\HandleCors::class,
+            \App\Http\Middleware\EnableCors::class,
         ]);
 
         // CSRF token validation
