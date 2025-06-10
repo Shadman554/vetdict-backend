@@ -121,6 +121,103 @@ Route::get('/db-schema', function () {
     }
 });
 
+// Test endpoints
+Route::prefix('test')->group(function () {
+    Route::get('/db-test', function () {
+        try {
+            $connection = config('database.default');
+            $config = config("database.connections.{$connection}");
+            
+            // Test database connection
+            DB::connection()->getPdo();
+            
+            // Check SQLite database file if using SQLite
+            if ($connection === 'sqlite') {
+                $database = $config['database'];
+                $dbExists = file_exists($database);
+                $dbWritable = is_writable($database) || is_writable(dirname($database));
+                
+                return response()->json([
+                    'status' => 'SQLite connection successful',
+                    'database_file' => $database,
+                    'file_exists' => $dbExists,
+                    'is_writable' => $dbWritable,
+                    'app_env' => config('app.env'),
+                    'db_connection' => $connection,
+                    'db_config' => $config,
+                    'storage_writable' => is_writable(storage_path()),
+                    'bootstrap_cache_writable' => is_writable(base_path('bootstrap/cache')),
+                ]);
+            }
+            
+            return response()->json([
+                'status' => 'Database connection successful',
+                'app_env' => config('app.env'),
+                'db_connection' => $connection,
+                'db_config' => $config,
+            ]);
+            
+        } catch (\Exception $e) {
+            $connection = config('database.default');
+            $config = config("database.connections.{$connection}");
+            
+            return response()->json([
+                'error' => $e->getMessage(),
+                'app_env' => config('app.env'),
+                'db_connection' => $connection,
+                'db_config' => $config,
+                'storage_writable' => is_writable(storage_path()),
+                'bootstrap_cache_writable' => is_writable(base_path('bootstrap/cache')),
+                'php_version' => PHP_VERSION,
+                'extensions' => get_loaded_extensions(),
+            ], 500);
+        }
+    });
+
+    Route::get('/db-schema', function () {
+        try {
+            // Test database connection first
+            DB::connection()->getPdo();
+            
+            $tables = [
+                'users', 'diseases', 'words', 'drugs', 'books', 
+                'normal_ranges', 'staff', 'tutorial_videos'
+            ];
+            
+            $result = [
+                'status' => 'Database schema check',
+                'app_env' => config('app.env'),
+                'db_connection' => config('database.default'),
+                'tables' => []
+            ];
+            
+            foreach ($tables as $table) {
+                $exists = Schema::hasTable($table);
+                $result['tables'][$table] = [
+                    'exists' => $exists,
+                    'columns' => $exists ? Schema::getColumnListing($table) : []
+                ];
+                
+                if ($exists) {
+                    try {
+                        $result['tables'][$table]['count'] = DB::table($table)->count();
+                    } catch (\Exception $e) {
+                        $result['tables'][$table]['count_error'] = $e->getMessage();
+                    }
+                }
+            }
+            
+            return response()->json($result);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ], 500);
+        }
+    });
+});
+
 // Public routes that don't require authentication
 Route::apiResource('words', \App\Http\Controllers\API\WordController::class)->only(['index', 'show']);
 Route::apiResource('diseases', \App\Http\Controllers\API\DiseaseController::class)->only(['index', 'show']);
