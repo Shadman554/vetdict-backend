@@ -11,8 +11,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "fruitcake/php-cors": "^1.2",
-        "guzzlehttp/guzzle": "^7.2",
-        "heroku/heroku-php-apache2": "*"
+        "guzzlehttp/guzzle": "^7.2"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
