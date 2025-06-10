@@ -66,7 +66,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::put('words/{word}', [\App\Http\Controllers\API\WordController::class, 'update'])->name('words.update');
     Route::delete('words/{word}', [\App\Http\Controllers\API\WordController::class, 'destroy'])->name('words.destroy');
     
-    // Repeat for other resources if needed
+    // Repeat for other resources
     Route::post('diseases', [\App\Http\Controllers\API\DiseaseController::class, 'store'])->name('diseases.store');
     Route::put('diseases/{disease}', [\App\Http\Controllers\API\DiseaseController::class, 'update'])->name('diseases.update');
     Route::delete('diseases/{disease}', [\App\Http\Controllers\API\DiseaseController::class, 'destroy'])->name('diseases.destroy');
