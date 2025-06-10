@@ -10,6 +10,7 @@ use Database\Seeders\DrugsTableSeeder;
 use Database\Seeders\NormalRangesTableSeeder;
 use Database\Seeders\StaffTableSeeder;
 use Database\Seeders\TutorialVideosTableSeeder;
+use Database\Seeders\JsonSeeder;
 use Illuminate\Support\Facades\Hash;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
