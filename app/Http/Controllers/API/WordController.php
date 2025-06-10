@@ -26,10 +26,31 @@ class WordController extends BaseController
     {
         try {
             // Log the request parameters
-            \Log::info('API Request:', [
+            Log::info('API Request:', [
                 'url' => request()->fullUrl(),
-                'params' => request()->all()
+                'params' => request()->all(),
+                'database' => config('database.default'),
+                'database_path' => config('database.connections.sqlite.database')
             ]);
+
+            // Check if database file exists
+            $dbPath = config('database.connections.sqlite.database');
+            if (!file_exists($dbPath)) {
+                Log::error('Database file does not exist', ['path' => $dbPath]);
+                return $this->sendError('Database file not found', ['path' => $dbPath], 500);
+            }
+
+            // Check if database is writable
+            if (!is_writable($dbPath)) {
+                Log::error('Database file is not writable', ['path' => $dbPath]);
+                return $this->sendError('Database is not writable', ['path' => $dbPath], 500);
+            }
+
+            // Check if words table exists
+            if (!Schema::hasTable('words')) {
+                Log::error('Words table does not exist in the database');
+                return $this->sendError('Database table not found', ['table' => 'words'], 500);
+            }
 
             // Get pagination parameters
             $perPage = min($request->input('per_page', 200), 200); // Default 200 items per page, max 200
@@ -49,6 +70,9 @@ class WordController extends BaseController
             
             // Get the results
             $words = $query->orderBy('name')->get();
+            
+            // Log the number of words found
+            Log::info('Words found:', ['count' => $words->count()]);
             
             // Transform the items
             $transformedItems = $words->map(function($word) {
@@ -75,10 +99,17 @@ class WordController extends BaseController
             ], 'Words retrieved successfully');
             
         } catch (\Exception $e) {
-            \Log::error('Error in WordController@index: ' . $e->getMessage());
-            \Log::error($e->getTraceAsString());
+            // Log the full exception
+            Log::error('Error in WordController@index: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
+            ]);
             
-            return $this->sendError('Error retrieving words', [], 500);
+            return $this->sendError(
+                'Error retrieving words: ' . $e->getMessage(), 
+                ['error' => $e->getTraceAsString()], 
+                500
+            );
         }
     }
 
