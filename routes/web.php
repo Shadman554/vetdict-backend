@@ -11,8 +11,7 @@ Route::get('/', function () {
     ]);
 });
 
-// API Routes
-require __DIR__.'/api.php';
+
 
 // Auth Routes (if needed)
 require __DIR__.'/auth.php';
