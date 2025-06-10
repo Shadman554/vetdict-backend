@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 class WordsTableSeeder extends Seeder
 {
@@ -26,11 +27,20 @@ class WordsTableSeeder extends Seeder
             return;
         }
 
-        $files = File::files($path);
+        // Define the order of tables to seed
+        $tables = [
+            'words', 'diseases', 'drugs', 'books', 'normal_ranges', 
+            'staff', 'tutorial_videos', 'about_page', 'app_links', 'notifications'
+        ];
 
-        foreach ($files as $file) {
-            // Get table name from file name, e.g., 'words.json' -> 'words'
-            $tableName = pathinfo($file->getFilename(), PATHINFO_FILENAME);
+        foreach ($tables as $tableName) {
+            $filePath = "{$path}/{$tableName}.json";
+            
+            if (!File::exists($filePath)) {
+                $this->command->warn("Skipping {$tableName}: JSON file not found");
+                continue;
+            }
+
             $this->command->info("Processing {$tableName}...");
 
             // Skip if table doesn't exist
@@ -39,41 +49,72 @@ class WordsTableSeeder extends Seeder
                 continue;
             }
 
-            // Read the JSON file content
-            $json = File::get($file->getPathname());
-            $data = json_decode($json, true);
+            try {
+                // Read and decode JSON
+                $json = File::get($filePath);
+                $data = json_decode($json, true);
 
-            // Check if data is not null and is an array
-            if (is_array($data) && !empty($data)) {
-                // Get table columns
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    throw new \Exception('Invalid JSON: ' . json_last_error_msg());
+                }
+
+                if (!is_array($data) || empty($data)) {
+                    $this->command->warn("No data to seed for {$tableName} or invalid format");
+                    continue;
+                }
+
+                // Get table columns and required fields
                 $tableColumns = Schema::getColumnListing($tableName);
+                $requiredColumns = ['id', 'created_at', 'updated_at'];
                 
-                // Filter data to only include columns that exist in the table
-                $filteredData = array_map(function($item) use ($tableColumns) {
-                    return array_intersect_key($item, array_flip($tableColumns));
-                }, $data);
-
-                // Truncate the table before seeding to avoid duplicates on re-seed
-                DB::table($tableName)->truncate();
+                // Process data in chunks
+                $chunks = array_chunk($data, 50);
+                $totalInserted = 0;
                 
-                // Insert data in chunks to avoid memory issues
-                $chunks = array_chunk($filteredData, 100);
-                foreach ($chunks as $chunk) {
+                foreach ($chunks as $chunkIndex => $chunk) {
+                    $records = [];
+                    
+                    foreach ($chunk as $item) {
+                        if (!is_array($item)) {
+                            $this->command->warn("Skipping invalid item in {$tableName}");
+                            continue;
+                        }
+                        
+                        // Filter out non-existent columns
+                        $record = array_intersect_key($item, array_flip($tableColumns));
+                        
+                        // Ensure required fields
+                        $record['id'] = $record['id'] ?? (string) Str::uuid();
+                        $record['created_at'] = $record['created_at'] ?? now();
+                        $record['updated_at'] = $record['updated_at'] ?? now();
+                        
+                        $records[] = $record;
+                    }
+                    
+                    if (empty($records)) {
+                        continue;
+                    }
+                    
+                    // Try to insert, ignore duplicates
                     try {
-                        DB::table($tableName)->insert($chunk);
-                        $this->command->info("Inserted " . count($chunk) . " records into {$tableName}");
+                        $inserted = DB::table($tableName)->insertOrIgnore($records);
+                        $totalInserted += count($records);
+                        $this->command->info("Chunk {$chunkIndex}: Inserted " . count($records) . " records into {$tableName}");
                     } catch (\Exception $e) {
                         $this->command->error("Error inserting into {$tableName}: " . $e->getMessage());
                         continue;
                     }
                 }
                 
-                $this->command->info("Seeded {$tableName} successfully.");
-            } else {
-                $this->command->warn("No data to seed for {$tableName} or invalid JSON format.");
+                $this->command->info("Successfully seeded {$totalInserted} records into {$tableName}");
+                
+            } catch (\Exception $e) {
+                $this->command->error("Error processing {$tableName}: " . $e->getMessage());
+                $this->command->error("File: " . $e->getFile() . " Line: " . $e->getLine());
+                continue;
             }
         }
         
-        $this->command->info('All data imported successfully!');
+        $this->command->info('All data import completed!');
     }
 }
