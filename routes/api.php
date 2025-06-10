@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Config;
+use App\Http\Controllers\API\WordController;
 
 /*
 |--------------------------------------------------------------------------
@@ -16,6 +17,9 @@ use Illuminate\Support\Facades\Config;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+// Words endpoint
+Route::get('/words', [WordController::class, 'index']);
 
 // Public test endpoint
 Route::get('/test-cors', function () {
