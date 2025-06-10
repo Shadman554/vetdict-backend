@@ -18,7 +18,8 @@ echo "3. Running database migrations..."
 php artisan migrate:fresh --force --verbose
 
 echo "4. Seeding database..."
-php artisan db:seed --class=JsonSeeder --verbose
+# Set the environment to local and force the seeder to run
+APP_ENV=local php artisan db:seed --class=JsonSeeder --force --verbose
 
 echo "5. Optimizing application..."
 php artisan optimize
