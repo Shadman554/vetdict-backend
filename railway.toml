@@ -1,7 +1,7 @@
 [build]
   builder = "nixpacks.toml"
   buildCommand = "mkdir -p storage/database && touch storage/database/database.sqlite && php artisan migrate --force && php artisan db:seed --force"
-  startCommand = "php artisan serve --host=0.0.0.0 --port=\$PORT"
+  startCommand = 'php artisan serve --host=0.0.0.0 --port=$PORT'
   
 [build.environment]
   APP_ENV = "production"
@@ -10,10 +10,10 @@
   DB_CONNECTION = "sqlite"
   DB_DATABASE = "/app/storage/database/database.sqlite"
   
-[deploy]
-  startCommand = "php artisan serve --host=0.0.0.0 --port=\$PORT"
-  
-[deploy.environment]
+[start]
+  cmd = 'php artisan serve --host=0.0.0.0 --port=$PORT'
+
+[environments]
   APP_ENV = "production"
   APP_DEBUG = "false"
   DB_CONNECTION = "sqlite"
