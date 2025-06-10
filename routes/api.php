@@ -2,6 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,25 +24,50 @@ Route::get('/test-cors', function () {
     ]);
 });
 
-// Test database connection and word count
+// Test database connection and table structure
 Route::get('/test-db', function () {
     try {
-        $count = \App\Models\Word::count();
-        $firstWord = \App\Models\Word::first();
+        // Test database connection
+        DB::connection()->getPdo();
         
-        return response()->json([
-            'success' => true,
-            'word_count' => $count,
-            'first_word' => $firstWord,
-            'database' => config('database.default'),
-            'connection_ok' => true,
-        ]);
+        // Check if diseases table exists
+        $tables = [
+            'diseases', 'words', 'drugs', 'books', 'normal_ranges', 'staff', 'tutorial_videos'
+        ];
+        
+        $result = [
+            'status' => 'Database connection successful',
+            'app_env' => config('app.env'),
+            'db_connection' => config('database.default'),
+            'tables' => []
+        ];
+        
+        foreach ($tables as $table) {
+            $exists = Schema::hasTable($table);
+            $result['tables'][$table] = [
+                'exists' => $exists,
+                'columns' => $exists ? Schema::getColumnListing($table) : []
+            ];
+            
+            if ($exists) {
+                try {
+                    $result['tables'][$table]['count'] = DB::table($table)->count();
+                } catch (\Exception $e) {
+                    $result['tables'][$table]['count_error'] = $e->getMessage();
+                }
+            }
+        }
+        
+        return response()->json($result);
+        
     } catch (\Exception $e) {
         return response()->json([
-            'success' => false,
             'error' => $e->getMessage(),
-            'database' => config('database.default'),
-            'connection_ok' => false,
+            'trace' => $e->getTraceAsString(),
+            'app_env' => config('app.env'),
+            'db_connection' => config('database.default'),
+            'db_host' => config('database.connections.' . config('database.default') . '.host'),
+            'db_database' => config('database.connections.' . config('database.default') . '.database'),
         ], 500);
     }
 });
